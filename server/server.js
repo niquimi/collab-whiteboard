@@ -24,6 +24,10 @@ io.on('connection', (socket) => {
     socket.broadcast.emit("draw", data);
   });
 
+  socket.on("fill", ({x, y}) => {
+    socket.broadcast.emit("fill", {x, y});
+  });
+
   socket.on("clear", () => {
     io.emit("clear");
   });

@@ -10,7 +10,21 @@
 </head>
 <body>
     <div id="toolbar">
-        <input type="number" id="lineWidth" value="2" min="1" max="10" title="Line Width">
+        <input type="number" id="lineWidth" value="4" min="1" max="10" title="Line Width">
+        <fieldset>
+            <div>
+                <input type="radio" value="pencil" name="tool" id="pencil" checked>
+                <label for="pencil">Pencil</label>
+            </div>
+            <div>
+                <input type="radio" value="eraser" name="tool" id="eraser">
+                <label for="eraser">Eraser</label>
+            </div>
+            <div>
+                <input type="radio" value="bucket" name="tool" id="bucket">
+                <label for="bucket">Bucket</label>
+            </div>
+        </fieldset>
         <button onclick="clearBoard()">Clear</button>
     </div>
     <canvas id="board" width="800" height="600"></canvas>
@@ -24,8 +38,16 @@
         let drawing = false;
         let prev = null;
 
+        // Tool selection handling
+        let tool = 'pencil';
+        document.querySelectorAll('input[name="tool"]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                tool = e.target.value;
+            });
+        });
+
+        // Line width input handling
         let lineWidth = parseInt(lineWidthInput.value, 10);
-        
         lineWidthInput.addEventListener('input', (e) => {
             lineWidth = e.target.value;
         });
@@ -33,6 +55,14 @@
         
 
         canvas.addEventListener("mousedown", (e) => {
+            if (tool === "bucket") {
+                const x = e.offsetX;
+                const y = e.offsetY;
+                bucketFill(x, y);
+                socket.emit('fill', { x, y });
+                return;
+            }
+
             drawing = true;
             prev = { x: e.offsetX, y: e.offsetY };
         });
@@ -54,13 +84,58 @@
         function drawLine(from, to, local = false) {
             if(!from || !to) return;
 
-            ctx.strokeStyle = "black";
-            ctx.lineWidth =  lineWidth || 2;
+            ctx.strokeStyle = (tool === 'eraser') ? '#fff' : '#000';
+            ctx.lineWidth =  lineWidth*2 || 2;
             ctx.lineCap = "round";
             ctx.beginPath();
             ctx.moveTo(from.x, from.y);
             ctx.lineTo(to.x, to.y);
             ctx.stroke();
+        }
+
+         socket.on("fill", ({ x, y }) => {
+            bucketFill(x, y);
+        });
+
+        function bucketFill(startX, startY) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            const targetColor = getPixelColor(data, startX, startY);
+            const fillColor = [0, 0, 0, 255];
+
+            if (colorsMatch(targetColor, fillColor)) return;
+
+            const pixelStack = [[startX, startY]];
+
+            while (pixelStack.length) {
+                const [x, y] = pixelStack.pop();
+                const index = (y * canvas.width + x) * 4;
+
+                const currentColor = [data[index], data[index + 1], data[index + 2], data[index + 3]];
+                if (!colorsMatch(currentColor, targetColor)) continue;
+
+                data[index] = fillColor[0];
+                data[index + 1] = fillColor[1];
+                data[index + 2] = fillColor[2];
+                data[index + 3] = fillColor[3];
+
+                if (x > 0) pixelStack.push([x - 1, y]);
+                if (x < canvas.width - 1) pixelStack.push([x + 1, y]);
+                if (y > 0) pixelStack.push([x, y - 1]);
+                if (y < canvas.height - 1) pixelStack.push([x, y + 1]);
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function getPixelColor(data, x, y) {
+            const index = (y * canvas.width + x) * 4;
+            return [data[index], data[index + 1], data[index + 2], data[index + 3]];
+        }
+
+        function colorsMatch(color1, color2) {
+            return color1[0] === color2[0] && color1[1] === color2[1] && color1[2] === color2[2] && color1[3] === color2[3];
         }
         
         function clearBoard() {
