@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collaborative Whiteboard - Lobby</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .center-box {
+            max-width: 400px;
+            margin: 15vh auto;
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+            padding: 2.5rem 2rem 2rem 2rem;
+        }
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0d6efd;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="center-box">
+        <div class="logo">Collaborative Whiteboard</div>
+        <form id="lobbyForm" autocomplete="off">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" placeholder="Enter your name" required>
+            </div>
+            <div class="d-grid gap-2 mb-2">
+                <button type="button" class="btn btn-primary" id="createRoomBtn">Create Room</button>
+                <button type="button" class="btn btn-outline-secondary" id="joinRoomBtn">Join Room</button>
+            </div>
+        </form>
+    </div>
+    <script>
+        function randomRoomCode(length = 6) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < length; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        document.getElementById('createRoomBtn').onclick = function() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                document.getElementById('username').focus();
+                return;
+            }
+            const room = randomRoomCode();
+            window.location.href = `/room/${room}?username=${encodeURIComponent(username)}`;
+        };
+
+        document.getElementById('joinRoomBtn').onclick = function() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                document.getElementById('username').focus();
+                return;
+            }
+            let room = prompt('Enter Room Code:');
+            if (room) {
+                room = room.trim().toUpperCase();
+                window.location.href = `/room/${room}?username=${encodeURIComponent(username)}`;
+            }
+        };
+    </script>
+</body>
+</html> 

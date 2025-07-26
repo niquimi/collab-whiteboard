@@ -42,6 +42,14 @@
         .form-label { margin-bottom: 0.25rem; font-size: 0.95rem; color: #495057; }
         .toolbar-group { display: flex; align-items: center; gap: 0.5rem; }
         .toolbar-divider { border-left: 1px solid #dee2e6; height: 32px; margin: 0 1rem; }
+        .room-info {
+            background: #e9ecef;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            color: #495057;
+            font-weight: 500;
+        }
         @media (max-width: 700px) {
             #toolbar { flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem; }
             .toolbar-divider { display: none; }
@@ -50,6 +58,12 @@
 </head>
 <body>
     <div id="toolbar" class="shadow-sm">
+        <div class="toolbar-group">
+            <div class="room-info">
+                <i class="bi bi-people"></i> Room: <span id="roomCode"></span> | <i class="bi bi-person"></i> <span id="username"></span>
+            </div>
+        </div>
+        <span class="toolbar-divider"></span>
         <div class="toolbar-group">
             <label class="form-label mb-0">Color</label>
             <span class="color-swatch bg-dark selected" data-color="#000000"></span>
@@ -94,6 +108,15 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // Extract room ID and username from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = window.location.pathname.split('/').pop();
+        const username = urlParams.get('username') || 'Anonymous';
+        
+        // Display room info
+        document.getElementById('roomCode').textContent = roomId;
+        document.getElementById('username').textContent = username;
+        
         const socket = io();
         const canvas = document.getElementById('board');
         const cursorCanvas = document.getElementById('cursorOverlay');
@@ -103,18 +126,30 @@
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.imageSmoothingEnabled = false;
 
+        // Join room when socket connects
+        socket.on('connect', () => {
+            socket.emit('join-room', { roomId, username });
+        });
+
         // --- CURSOR SHARING LOGIC START ---
-        let myCursor = { name: '', color: '', x: null, y: null };
+        let myCursor = { name: username, color: '', x: null, y: null };
         let allCursors = {};
-        // Listen for assigned name/color
-        socket.on('cursor-init', ({ name, color }) => {
-            myCursor.name = name;
+        
+        // Listen for assigned color
+        socket.on('cursor-init', ({ color }) => {
             myCursor.color = color;
         });
-        // Listen for all cursors
+        
+        // Listen for all cursors in the room
         socket.on('cursors', (cursors) => {
             allCursors = cursors;
         });
+        
+        // Listen for user joined notification
+        socket.on('user-joined', ({ username, roomId }) => {
+            console.log(`${username} joined room ${roomId}`);
+        });
+        
         // Emit cursor position on mouse move over canvas
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -124,6 +159,7 @@
             myCursor.y = y;
             socket.emit('cursor-move', { x, y });
         });
+        
         // Draw all remote cursors (except self) on overlay
         function drawCursors() {
             cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
