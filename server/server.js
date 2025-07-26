@@ -120,10 +120,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on("fill", ({x, y}) => {
+  socket.on("fill", ({x, y, color}) => {
     const roomId = socket.roomId;
     if (roomId) {
-      socket.to(roomId).emit("fill", {x, y});
+      socket.to(roomId).emit("fill", {x, y, color});
     }
   });
 
