@@ -294,6 +294,99 @@
             bucketFill(x, y, color);
         });
 
+        function getPixelColor(data, x, y) {
+            const index = (y * canvas.width + x) * 4;
+            return [data[index], data[index + 1], data[index + 2], data[index + 3]];
+        }
+
+        function colorsMatch(a, b, tolerance = 30) {
+            // Use a slightly higher tolerance for anti-aliased borders
+            const diff = Math.sqrt(
+                (a[0] - b[0]) ** 2 +
+                (a[1] - b[1]) ** 2 +
+                (a[2] - b[2]) ** 2 +
+                (a[3] - b[3]) ** 2
+            );
+            return diff < tolerance + 8; // Add 8 to tolerance to help with anti-aliasing
+        }
+        
+        function clearBoard() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            socket.emit('clear');
+            // Send canvas update after clearing
+            sendCanvasUpdate();
+        }    
+
+        socket.on("clear", () => {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // --- CURSOR SHARING LOGIC: Overlay cursors after each frame ---
+        function renderCursorsOverlay() {
+            drawCursors();
+            requestAnimationFrame(renderCursorsOverlay);
+        }
+        requestAnimationFrame(renderCursorsOverlay);
+        // --- END CURSOR SHARING LOGIC ---
+
+        // Canvas state management
+        let lastCanvasUpdate = 0;
+        const CANVAS_UPDATE_INTERVAL = 2000; // Update every 2 seconds
+
+        // Function to capture current canvas state
+        function captureCanvasState() {
+            return canvas.toDataURL('image/png');
+        }
+
+        // Function to restore canvas state
+        function restoreCanvasState(dataUrl) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = dataUrl;
+        }
+
+        // Send canvas state updates periodically
+        function sendCanvasUpdate() {
+            const now = Date.now();
+            if (now - lastCanvasUpdate > CANVAS_UPDATE_INTERVAL) {
+                const canvasState = captureCanvasState();
+                socket.emit('canvas-update', canvasState);
+                lastCanvasUpdate = now;
+            }
+        }
+
+
+
+        // Listen for canvas state updates from server
+        socket.on('canvas-state', (canvasState) => {
+            restoreCanvasState(canvasState);
+        });
+
+        // Send canvas update after drawing operations
+        function drawLine(from, to, local = true, remoteColor = null) {
+            if (!from || !to) return;
+            let color = remoteColor || selectedColor;
+            ctx.strokeStyle = (tool === 'eraser' && local) ? '#ffffff' : color;
+            ctx.lineWidth = lineWidth * 2 || 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+
+            // Send canvas update after drawing
+            if (local) {
+                sendCanvasUpdate();
+            }
+        }
+
         function bucketFill(startX, startY, remoteColor = null) {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
@@ -407,42 +500,33 @@
             }
 
             ctx.putImageData(imageData, 0, 0);
+
+            // Send canvas update after bucket fill (always for local operations)
+            if (remoteColor === null) {
+                // Force immediate update for bucket fills
+                const canvasState = captureCanvasState();
+                socket.emit('canvas-update', canvasState);
+                lastCanvasUpdate = Date.now();
+            } else {
+                // Also send update after applying a remote fill
+                const canvasState = captureCanvasState();
+                socket.emit('canvas-update', canvasState);
+                lastCanvasUpdate = Date.now();
+            }
         }
 
-        function getPixelColor(data, x, y) {
-            const index = (y * canvas.width + x) * 4;
-            return [data[index], data[index + 1], data[index + 2], data[index + 3]];
-        }
-
-        function colorsMatch(a, b, tolerance = 30) {
-            // Use a slightly higher tolerance for anti-aliased borders
-            const diff = Math.sqrt(
-                (a[0] - b[0]) ** 2 +
-                (a[1] - b[1]) ** 2 +
-                (a[2] - b[2]) ** 2 +
-                (a[3] - b[3]) ** 2
-            );
-            return diff < tolerance + 8; // Add 8 to tolerance to help with anti-aliasing
-        }
-        
         function clearBoard() {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             socket.emit('clear');
+            // Send canvas update after clearing
+            sendCanvasUpdate();
         }    
 
         socket.on("clear", () => {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         });
-
-        // --- CURSOR SHARING LOGIC: Overlay cursors after each frame ---
-        function renderCursorsOverlay() {
-            drawCursors();
-            requestAnimationFrame(renderCursorsOverlay);
-        }
-        requestAnimationFrame(renderCursorsOverlay);
-        // --- END CURSOR SHARING LOGIC ---
     </script>
 </body>
 </html>

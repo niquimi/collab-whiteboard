@@ -76,7 +76,8 @@ io.on('connection', (socket) => {
     if (!rooms.has(roomId)) {
       rooms.set(roomId, {
         users: new Set(),
-        cursors: {}
+        cursors: {},
+        canvasState: null
       });
     }
     
@@ -84,10 +85,26 @@ io.on('connection', (socket) => {
     room.users.add(socket.id);
     room.cursors[socket.id] = io.cursors[socket.id];
     
+    // Send current canvas state to the new user if it exists
+    if (room.canvasState) {
+      socket.emit('canvas-state', room.canvasState);
+    }
+    
     // Notify others in the room
     socket.to(roomId).emit('user-joined', { username, roomId });
     
     console.log(`User ${username} joined room ${roomId}`);
+  });
+
+  // Handle canvas state updates
+  socket.on('canvas-update', (canvasState) => {
+    const roomId = socket.roomId;
+    if (roomId && rooms.has(roomId)) {
+      const room = rooms.get(roomId);
+      room.canvasState = canvasState;
+      // Broadcast to other users in the room
+      socket.to(roomId).emit('canvas-state', canvasState);
+    }
   });
 
   // On disconnect, remove cursor and user from room
@@ -131,6 +148,11 @@ io.on('connection', (socket) => {
     const roomId = socket.roomId;
     if (roomId) {
       io.to(roomId).emit("clear");
+      // Clear the stored canvas state
+      if (rooms.has(roomId)) {
+        const room = rooms.get(roomId);
+        room.canvasState = null;
+      }
     }
   });
 
