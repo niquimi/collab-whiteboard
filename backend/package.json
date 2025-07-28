@@ -1,38 +1,31 @@
 {
-    "name": "collab-whiteboard",
-    "version": "1.0.0",
-    "description": "A collaborative whiteboard application built with Next.js, Express, and Websockets.",
-    "main": "server/server.js",
-    "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "node server/server.js",
-        "server": "nodemon server/server.js"
-    },
-    "dependencies": {
-        "bootstrap": "^5.3.2",
-        "dotenv": "^16.3.1",
-        "express": "^4.18.2",
-        "next": "^13.4.12",
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0",
-        "socket.io": "^4.8.1"
-    },
-    "devDependencies": {
-        "nodemon": "^3.0.1"
-    },
-    "engines": {
-        "node": ">=14.0.0"
-    },
-    "keywords": [
-        "whiteboard",
-        "Websockets",
-        "nextjs",
-        "express",
-        "socket.io",
-        "collaboration",
-        "bootstrap"
-    ],
-    "author": "Nicolas Garcia",
-    "license": "MIT"
+  "name": "collab-whiteboard-backend",
+  "version": "1.0.0",
+  "description": "Backend server for collaborative whiteboard application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "whiteboard",
+    "websockets",
+    "express",
+    "socket.io",
+    "collaboration"
+  ],
+  "author": "Nicolas Garcia",
+  "license": "MIT"
 }
