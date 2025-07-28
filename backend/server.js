@@ -1,30 +1,45 @@
 const express = require("express");
 const http = require("http");
-const path = require("path");
 const { Server } = require("socket.io");
+const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// CORS configuration for frontend
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "https://your-username.github.io",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "https://your-username.github.io",
+  credentials: true
+}));
 
-// Static files
-app.use(express.static(path.join(__dirname, "../public")));
-
-// Routes
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views/landing.html'));
-});
-
-app.get('/room/:roomId', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views/home.html'));
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Server is running' });
 });
 
 // Room management
 const rooms = new Map();
+
+// API endpoints
+app.get('/api/status', (req, res) => {
+  res.json({ 
+    status: 'running', 
+    timestamp: new Date().toISOString(),
+    rooms: Array.from(rooms.keys())
+  });
+});
 
 io.on('connection', (socket) => {
   console.log('A user connected');
