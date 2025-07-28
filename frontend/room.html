@@ -108,6 +108,8 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        const BACKEND_URL = 'https://collab-whiteboard-4u8a.onrender.com';
+
         // Extract room ID and username from URL
         const urlParams = new URLSearchParams(window.location.search);
         const roomId = window.location.pathname.split('/').pop();
@@ -116,8 +118,8 @@
         // Display room info
         document.getElementById('roomCode').textContent = roomId;
         document.getElementById('username').textContent = username;
-        
-        const socket = io();
+
+        const socket = io(BACKEND_URL);
         const canvas = document.getElementById('board');
         const cursorCanvas = document.getElementById('cursorOverlay');
         const cursorCtx = cursorCanvas.getContext('2d');
