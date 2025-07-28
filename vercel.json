@@ -1,0 +1,16 @@
+{
+    "version": 2,
+    "public": true,
+    "name": "collaborative-whiteboard",
+    "builds": [],
+    "routes": [
+        {
+            "src": "/room/([^/]+)",
+            "dest": "/frontend/room.html"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/frontend/$1"
+        }
+    ]
+}
